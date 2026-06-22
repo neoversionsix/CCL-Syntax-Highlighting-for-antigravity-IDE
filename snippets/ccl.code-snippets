@@ -1,0 +1,59 @@
+{
+    "SELECT block": {
+        "prefix": "select",
+        "body": [
+            "select into ${1:\"nl:\"}",
+            "\t${2:column_name}",
+            "from",
+            "\t${3:table_name}",
+            "where ${4:condition}",
+            "with format, separator=\" \", time=${5:60}"
+        ],
+        "description": "A basic SELECT statement"
+    },
+    "UPDATE block": {
+        "prefix": "update",
+        "body": [
+            "update into ${1:table_name}",
+            "set",
+            "\t${2:column_name} = ${3:value}",
+            "where ${4:condition}",
+            "with time=${5:60}"
+        ],
+        "description": "A basic UPDATE statement"
+    },
+    "DELETE block": {
+        "prefix": "delete",
+        "body": [
+            "delete from ${1:table_name}",
+            "where ${2:condition}",
+            "with time=${3:60}"
+        ],
+        "description": "A basic DELETE statement"
+    },
+    "DECLARE variable": {
+        "prefix": "declare",
+        "body": [
+            "declare ${1:var_name} = ${2|f8,i4,i2,vc,c|} with noconstant(${3:0.0})"
+        ],
+        "description": "Declare a variable"
+    },
+    "IF statement": {
+        "prefix": "if",
+        "body": [
+            "if (${1:condition})",
+            "\t${2:; code}",
+            "endif"
+        ],
+        "description": "If statement"
+    },
+    "WHILE loop": {
+        "prefix": "while",
+        "body": [
+            "while (${1:condition})",
+            "\t${2:; code}",
+            "endwhile"
+        ],
+        "description": "While loop"
+    }
+}

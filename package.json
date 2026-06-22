@@ -1,0 +1,42 @@
+{
+  "name": "ccl-language-support",
+  "displayName": "Cerner CCL Language Support",
+  "description": "Language support for Cerner Command Language (CCL)",
+  "version": "0.0.1",
+  "publisher": "jason-whittle",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jason-whittle/ccl-language-support"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "ccl",
+        "aliases": ["CCL", "ccl"],
+        "extensions": [".prg", ".inc", ".ccl"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ccl",
+        "scopeName": "source.ccl",
+        "path": "./syntaxes/ccl.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "ccl",
+        "path": "./snippets/ccl.code-snippets"
+      }
+    ]
+  }
+}

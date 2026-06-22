@@ -1,0 +1,87 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Cerner CCL",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#variables"
+        },
+        {
+            "include": "#numbers"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.ccl",
+                    "match": ";.*$"
+                },
+                {
+                    "name": "comment.block.ccl",
+                    "begin": "/\\*",
+                    "end": "\\*/"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.ccl",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.ccl",
+                            "match": "\\\\."
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.single.ccl",
+                    "begin": "'",
+                    "end": "'",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.ccl",
+                            "match": "\\\\."
+                        }
+                    ]
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.ccl",
+                    "match": "(?i)\\b(DATETIMEZONEBYINDEX|DATEDECEASEDFORMAT|DATETIMEZONEBYNAME|DATETIMEZONEFORMAT|CALL\\s+ECHORECORD|CALL\\s+PRINTIMAGE|CALL\\s+SCROLLDOWN|CALL\\s+SCROLLINIT|CALL\\s+SCROLLTEXT|SET\\s+MAXCOLWIDTH|SET\\s+TRANSACTION|CNVTDATETIMEUTC2|CNVTDATETIMEUTC3|CALL\\s+SCROLLUP|CNVTAGEDATETIME|CNVTDATETIMERDB|CNVTDATETIMEUTC|DATEBIRTHFORMAT|DATETIMEZONEUTC|PERCENTILE_CONT|PERCENTILE_DISC|SET\\s+CURACCEPT|SET\\s+CURLOCALE|AESDECRYPTFILE|AESENCRYPTFILE|CALL\\s+COMPILE|CALL\\s+ECHOXML|CNVTLOOKBEHIND|DATETIMECMPUTC|SET\\s+CURALIAS|SET\\s+CURSCOPE|SET\\s+PRIORITY|SET\\s+VALIDATE|SET\\s+variable|CALL\\s+ACCEPT|CALL\\s+CANCEL|CALL\\s+CENTER|CALL\\s+PARSER|CNVTDATETIME2|CNVTLOOKAHEAD|DATETIMETRUNC|LOCATEVALSORT|SET\\s+COMPILE|SET\\s+CURHELP|SET\\s+LOGICAL|SET\\s+MESSAGE|SET\\s+WARNING|CALL\\s+CLEAR|CALL\\s+DEBUG|CALL\\s+PAUSE|CALL\\s+PRINT|CALL\\s+TRACE|CALL\\s+VIDEO|CNVTALPHANUM|CNVTDATETIME|CURCODECOVER|DATETIMEDIFF|DATETIMEFIND|DATETIMEPART|DATETIMEZONE|EVALUATE\\s+2|PERCENT_RANK|SET\\s+ACCEPT|SET\\s+MODIFY|SET\\s+SOURCE|SET\\s+WINDOW|CALL\\s+ECHO|CALL\\s+EDIT|CALL\\s+LINE|CALL\\s+TEXT|METASYMBOLS|MOVERECLIST|NOPATSTRING|RECTRAVERSE|SELECTIVITY|SET\\s+BREAK|SET\\s+ERROR|SET\\s+SPOOL|SET\\s+TRACE|SET\\s+VIEWS|SET\\s+WIDTH|SQLPASSTHRU|AESDECRYPT|AESENCRYPT|ARRAYSPLIT|BLOBGETLEN|CALL\\s+BOX|CALL\\s+DCL|CHECKQUEUE|CNVTB10B16|CNVTB10B36|CNVTB16B10|CNVTB36B10|CNVTHEXRAW|DENSE_RANK|FILLSTRING|FINDSTRING|HASH\\s+MAP|MEMREALLOC|PARAMETER2|PERCENTILE|REPORTINFO|ROW_NUMBER|SET\\s+HELP|SET\\s+HOME|SET\\s+TYPE|SORTSEARCH|TDBEXECUTE|WTMODCHECK|GROUP\\s+BY|ORDER\\s+BY|ALTERLIST|ARRAYJOIN|CCLREGEXP|CNVTALIAS|CNVTDATE2|CNVTLOWER|CUME_DIST|CURLOCALE|FUNCTIONS|INITARRAY|ISNUMERIC|LOCATEVAL|NORDBBIND|PARAMETER|PATSTRING|PROXYUSER|REPORTROW|SET\\s+DIR|SET\\s+DOC|SET\\s+ROW|SUBSTRING|CHECKFUN|CHECKPRG|CLASSREF|CNVTAGE2|CNVTDATE|CNVTLONG|CNVTMIN2|EVALUATE|FINDFILE|GREATEST|MEMALLOC|MODCHECK|ORDERDIR|TABLEREF|TRIMBIND|VALIDATE|VARIANCE|ROLLBACK|ASSIGN2|ASSIGN3|BLOBGET|CALCPOS|CALLPRG|CNVTACC|CNVTAGE|CNVTCAP|CNVTINT|CNVTMIN|CURFILE|CURPROG|EXECUTE|GO\\s+TO|INITREC|LISTAGG|LOGICAL|MEMFREE|NULLFMT|PERCENT|RDBBIND|REFLECT|REPLACE|SOUNDEX|TEXTLEN|WEEKDAY|DECLARE|BETWEEN|FOOTING|HEADING|ALTER2|ALTER3|ASSIGN|BSHIFT|BUILD2|BUILD3|CCLFMT|CURLOB|CURMEM|CURSUB|DECODE|DEFINE|DELETE|EXPAND|FORMAT|INSERT|JULIAN|MAXREC|MAXVAL|MEDIAN|MINUTE|MINVAL|MODIFY|PARSER|REMOVE|ROLLUP|SELECT|STDDEV|UPDATE|HAVING|VALUES|CREATE|ELSEIF|RETURN|COMMIT|DETAIL|REPORT|ALTER|BTEST|BUILD|CALLR|CHECK|CLASS|ERROR|FLOOR|ICHAR|LEAST|LOG10|MONTH|NTILE|PIECE|ROUND|SOUND|TRACE|VALUE|WHILE|WHERE|TABLE|INDEX|BEGIN|FALSE|ASIS|BAND|BNOT|BXOR|CASE|CEIL|CHAR|CUBE|EVEN|HOUR|NULL|RAND|RANK|SIZE|SORT|TEXT|TRIM|YEAR|FROM|JOIN|INTO|DROP|VIEW|THEN|ELSE|STEP|CALL|WITH|LIKE|TRUE|HEAD|ABS|AVG|BOR|DAY|EXP|FOR|LOG|MAP|MAX|SEQ|SUM|SET|END|AND|NOT|IF|ON|DO|TO|AS|OR|IN|IS)\\b"
+                }
+            ]
+        },
+        "variables": {
+            "patterns": [
+                {
+                    "name": "variable.other.ccl",
+                    "match": "(?i)\\b[a-z_][a-z0-9_]*\\b"
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.ccl",
+                    "match": "\\b\\d+(\\.\\d+)?\\b"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.ccl"
+}

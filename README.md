@@ -1,2 +1,3 @@
-# CCL-Syntax-Highlighting-for-antigravity-IDE
-CCL Syntax Highlighting for antigravity IDE
+# Cerner CCL Language Support
+
+Provides syntax highlighting, language configuration, and code snippets for Cerner Command Language (CCL) files (`.prg`, `.inc`, `.ccl`) in VS Code / Open VSX.
