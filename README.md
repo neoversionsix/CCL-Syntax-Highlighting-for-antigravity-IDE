@@ -22,3 +22,22 @@ Package the extension into a `.vsix` file:
 ```bash
 npx @vscode/vsce package
 ```
+
+## Automated Publishing (Open VSX)
+
+The [`.github/workflows/publish.yml`](.github/workflows/publish.yml) workflow packages and publishes the extension to Open VSX automatically when a `v*` tag is pushed (or when triggered manually via **Actions → Run workflow**).
+
+### One-time setup
+
+Add a repository secret named `OVSX_PAT` in **GitHub → Settings → Secrets and variables → Actions** containing your Open VSX Personal Access Token.
+
+### Releasing a new version
+
+1. Update `"version"` in `package.json` (e.g. `0.0.3`), commit, and push to `main`.
+2. Tag the commit with a matching `v` prefix and push the tag:
+
+```bash
+git tag v0.0.3
+git push origin v0.0.3
+```
+
