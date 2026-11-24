@@ -12,14 +12,24 @@
         {"open": "{", "close": "}"},
         {"open": "[", "close": "]"},
         {"open": "(", "close": ")"},
+        {"open": "/*", "close": "*/", "notIn": ["string"]},
         {"open": "'", "close": "'", "notIn": ["string", "comment"]},
-        {"open": "\"", "close": "\"", "notIn": ["string"]}
+        {"open": "\"", "close": "\"", "notIn": ["string", "comment"]},
+        {"open": "^", "close": "^", "notIn": ["string", "comment"]},
+        {"open": "~", "close": "~", "notIn": ["string", "comment"]}
     ],
     "surroundingPairs": [
         {"open": "{", "close": "}"},
         {"open": "[", "close": "]"},
         {"open": "(", "close": ")"},
+        {"open": "/*", "close": "*/"},
         {"open": "'", "close": "'"},
-        {"open": "\"", "close": "\""}
-    ]
+        {"open": "\"", "close": "\""},
+        {"open": "^", "close": "^"},
+        {"open": "~", "close": "~"}
+    ],
+    "indentationRules": {
+        "increaseIndentPattern": "(?i)^\\s*(if|elseif|else\\s+if|else|for|while|case|subroutine|record)\\b.*$",
+        "decreaseIndentPattern": "(?i)^\\s*(elseif|else\\s+if|else|endif|endfor|endwhile|endcase|end)\\b.*$"
+    }
 }

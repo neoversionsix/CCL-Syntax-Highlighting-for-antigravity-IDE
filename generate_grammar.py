@@ -1,131 +1,648 @@
-import urllib.request
-from bs4 import BeautifulSoup
+"""Generate syntaxes/ccl.tmLanguage.json for Cerner Command Language (CCL)."""
+
 import json
 import re
+from pathlib import Path
 
-def get_items(url):
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as response:
-        html = response.read()
-    soup = BeautifulSoup(html, 'html.parser')
-    
-    items = set()
-    for a in soup.find_all('a'):
-        text = a.get_text(strip=True)
-        if text and len(text) > 1 and not text.startswith('Discern Explorer') and not text.startswith('Command Syntax'):
-            # Only keep ones that look like commands/functions (mostly uppercase or camelCase)
-            if re.match(r'^[A-Za-z0-9_ ]+$', text):
-                items.add(text)
-    return items
 
-functions_url = "https://neoversionsix.github.io/wh-bookmarks/ccl_functions/index.html"
-ref_url = "https://neoversionsix.github.io/wh-bookmarks/ccl_programming_reference/index.html"
+def build_word_alternation(words: list[str]) -> str:
+    """Sort words longest-first and join into a regex alternation with \\s+ for spaces."""
+    unique = sorted(set(words), key=lambda w: (-len(w), w))
+    return "|".join(re.escape(w).replace(r"\ ", r"\s+") for w in unique)
 
-print("Fetching functions...")
-functions = get_items(functions_url)
 
-keywords = list(functions)
-keywords.sort()
+def validate_regexes(node: object, path: str = "root") -> None:
+    """Recursively compile all regex strings in the grammar to catch syntax errors."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in {"match", "begin", "end", "while"} and isinstance(value, str):
+                try:
+                    re.compile(value)
+                except re.error as exc:
+                    raise ValueError(f"Invalid regex at {path}.{key}: {value!r} -> {exc}") from exc
+            else:
+                validate_regexes(value, f"{path}.{key}")
+    elif isinstance(node, list):
+        for idx, item in enumerate(node):
+            validate_regexes(item, f"{path}[{idx}]")
 
-# Also add some common SQL/CCL keywords manually just in case
-common = ["SELECT", "FROM", "WHERE", "JOIN", "ON", "GROUP BY", "ORDER BY", "HAVING", "UPDATE", "SET", "DELETE", "INSERT", "INTO", "VALUES", "CREATE", "DROP", "ALTER", "TABLE", "INDEX", "VIEW", "DECLARE", "BEGIN", "END", "IF", "THEN", "ELSE", "ELSEIF", "WHILE", "DO", "FOR", "TO", "STEP", "GO TO", "RETURN", "CALL", "EXECUTE", "COMMIT", "ROLLBACK", "WITH", "AS", "AND", "OR", "NOT", "IN", "LIKE", "BETWEEN", "IS", "NULL", "TRUE", "FALSE", "EVALUATE", "DETAIL", "FOOTING", "HEADING", "REPORT", "HEAD"]
 
-for c in common:
-    if c not in keywords:
-        keywords.append(c)
+def build_grammar() -> dict:
+    """Construct the TextMate grammar dictionary for Cerner CCL."""
+    control_keywords = [
+        # Multi-word clauses and commands
+        "CREATE PROGRAM",
+        "DROP PROGRAM",
+        "FREE RECORD",
+        "FREE DEFINE",
+        "FREE SET",
+        "HEAD REPORT",
+        "FOOT REPORT",
+        "HEAD PAGE",
+        "FOOT PAGE",
+        "ORDER BY",
+        "GROUP BY",
+        "ELSE IF",
+        "END GO",
+        "GO TO",
+        # Block delimiters & control flow
+        "SUBROUTINE",
+        "ENDSELECT",
+        "ENDWHILE",
+        "ENDCASE",
+        "ENDFOR",
+        "ENDIF",
+        "ENDGO",
+        "ELSEIF",
+        "RETURN",
+        "CONTINUE",
+        "BREAK",
+        "EXIT",
+        "GOTO",
+        "WHILE",
+        "BEGIN",
+        "CASE",
+        "ELSE",
+        "THEN",
+        "FOR",
+        "END",
+        "IF",
+        "DO",
+        "TO",
+        "GO",
+        "OF",
+        # Program / query / declaration keywords
+        "PERSISTSCRIPT",
+        "NOCONSTANT",
+        "SKIPREPORT",
+        "NOCOUNTER",
+        "OUTERJOIN",
+        "DONTJOIN",
+        "SEPARATOR",
+        "CONSTANT",
+        "DISTINCT",
+        "ROLLBACK",
+        "DONTJOIN",
+        "DONTWAIT",
+        "MAXQUAL",
+        "HEADING",
+        "FOOTING",
+        "DECLARE",
+        "EXECUTE",
+        "PERSIST",
+        "PRIVATE",
+        "PROTECT",
+        "COUNTER",
+        "MAXREC",
+        "NOTRIM",
+        "PROMPT",
+        "PUBLIC",
+        "RECORD",
+        "REPORT",
+        "SELECT",
+        "UPDATE",
+        "VALUES",
+        "COMMIT",
+        "CREATE",
+        "DELETE",
+        "DETAIL",
+        "HAVING",
+        "INSERT",
+        "MODIFY",
+        "DEFINE",
+        "REMOVE",
+        "CANCEL",
+        "PROGRAM",
+        "ALTER",
+        "CHECK",
+        "CLASS",
+        "INDEX",
+        "TABLE",
+        "UNION",
+        "WHERE",
+        "FROM",
+        "FOOT",
+        "HEAD",
+        "INTO",
+        "JOIN",
+        "PAGE",
+        "PLAN",
+        "STEP",
+        "TIME",
+        "VIEW",
+        "WITH",
+        "CALL",
+        "DESC",
+        "DROP",
+        "FREE",
+        "ASC",
+        "MAP",
+        "SET",
+        "BY",
+        "ON",
+    ]
 
-# Build a regex string for keywords
-keywords_regex = r'(?i)\b(' + '|'.join(sorted([k.replace(' ', r'\s+') for k in keywords], key=len, reverse=True)) + r')\b'
+    logical_operators = [
+        "OPERATOR",
+        "BETWEEN",
+        "EXISTS",
+        "LIKE",
+        "AND",
+        "NOT",
+        "IN",
+        "IS",
+        "OR",
+        "AS",
+    ]
 
-grammar = {
-    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-    "name": "Cerner CCL",
-    "patterns": [
-        {
-            "include": "#comments"
+    language_constants = [
+        "CURTIMEZONEAPP",
+        "CURCODECOVER",
+        "SYSTIMESTAMP",
+        "CURACCEPT",
+        "CURDOMAIN",
+        "CURLOCALE",
+        "CURALIAS",
+        "CURSCOPE",
+        "CURTIME2",
+        "CURTIME3",
+        "CURDATE",
+        "CURFILE",
+        "CURHELP",
+        "CURPROG",
+        "CURQUAL",
+        "CURSYS2",
+        "CURTIME",
+        "CURUSER",
+        "SYSDATE",
+        "CURLOB",
+        "CURMEM",
+        "CURREV",
+        "CURSUB",
+        "CURSYS",
+        "CURUTC",
+        "OUTDEV",
+        "FALSE",
+        "NULL",
+        "TRUE",
+        "ZERO",
+    ]
+
+    builtin_functions = [
+        # Date / Time / Conversion
+        "DATETIMEZONEBYINDEX",
+        "DATEDECEASEDFORMAT",
+        "DATETIMEZONEBYNAME",
+        "DATETIMEZONEFORMAT",
+        "CNVTDATETIMEUTC2",
+        "CNVTDATETIMEUTC3",
+        "CNVTAGEDATETIME",
+        "CNVTDATETIMERDB",
+        "CNVTDATETIMEUTC",
+        "DATEBIRTHFORMAT",
+        "DATETIMEZONEUTC",
+        "CNVTLOOKBEHIND",
+        "DATETIMECMPUTC",
+        "CNVTRECTOJSON",
+        "CNVTJSONTOREC",
+        "CNVTDATETIME2",
+        "CNVTLOOKAHEAD",
+        "CNVTRECTOXML",
+        "CNVTXMLTOREC",
+        "DATETIMETRUNC",
+        "CNVTALPHANUM",
+        "CNVTDATETIME",
+        "DATETIMEDIFF",
+        "DATETIMEFIND",
+        "DATETIMEPART",
+        "DATETIMEZONE",
+        "DATETIMEADD",
+        "DATETIMECMP",
+        "DATETIMESUB",
+        "CNVTNLSSORT",
+        "CNVTB10B16",
+        "CNVTB10B36",
+        "CNVTB16B10",
+        "CNVTB36B10",
+        "CNVTHEXRAW",
+        "CNVTSTRING",
+        "CNVTALIAS",
+        "CNVTDATE2",
+        "CNVTLOWER",
+        "CNVTUPPER",
+        "CNVTAGE2",
+        "CNVTBOOL",
+        "CNVTDATE",
+        "CNVTLONG",
+        "CNVTMIN2",
+        "CNVTREAL",
+        "CNVTACC",
+        "CNVTAGE",
+        "CNVTCAP",
+        "CNVTINT",
+        "CNVTMIN",
+        "WEEKDAY",
+        "JULIAN",
+        "MINUTE",
+        "MONTH",
+        "HOUR",
+        "YEAR",
+        "DAY",
+        # String / Regex / Formatting
+        "REGEXPREPLACE",
+        "REGEXPSUBSTR",
+        "REGEXPMATCH",
+        "REGEXPCOUNT",
+        "REGEXPINSTR",
+        "NOPATSTRING",
+        "FILLSTRING",
+        "FINDSTRING",
+        "MOVESTRING",
+        "PATSTRING",
+        "SUBSTRING",
+        "CCLREGEXP",
+        "TEXTLEN",
+        "REPLACE",
+        "SOUNDEX",
+        "CONCAT",
+        "BUILD2",
+        "BUILD3",
+        "CCLFMT",
+        "FORMAT",
+        "NULLFMT",
+        "BUILD",
+        "ICHAR",
+        "PIECE",
+        "CHAR",
+        "TEXT",
+        "TRIM",
+        # List / Record / Array / Memory
+        "LOCATEVALSORT",
+        "MOVERECLIST",
+        "ARRAYSPLIT",
+        "MEMREALLOC",
+        "ARRAYJOIN",
+        "ALTERLIST",
+        "INITARRAY",
+        "LOCATEVAL",
+        "MEMALLOC",
+        "INITREC",
+        "MEMFREE",
+        "EXPAND",
+        "ALTER2",
+        "ALTER3",
+        "SIZE",
+        # Math / Aggregation / Analytics / Bitwise
+        "PERCENTILE_CONT",
+        "PERCENTILE_DISC",
+        "PERCENT_RANK",
+        "DENSE_RANK",
+        "PERCENTILE",
+        "ROW_NUMBER",
+        "CUME_DIST",
+        "ISNUMERIC",
+        "VARIANCE",
+        "GREATEST",
+        "EVALUATE",
+        "PERCENT",
+        "DECODE",
+        "MAXVAL",
+        "MEDIAN",
+        "MINVAL",
+        "STDDEV",
+        "BSHIFT",
+        "LEAST",
+        "LOG10",
+        "NTILE",
+        "ROUND",
+        "FLOOR",
+        "BTEST",
+        "BAND",
+        "BNOT",
+        "BXOR",
+        "CEIL",
+        "EVEN",
+        "RAND",
+        "RANK",
+        "CUBE",
+        "ROLLUP",
+        "ABS",
+        "AVG",
+        "BOR",
+        "EXP",
+        "LOG",
+        "MAX",
+        "MIN",
+        "MOD",
+        "SEQ",
+        "SUM",
+        "COUNT",
+        # I/O / System / Diagnostics / Screen / Crypto
+        "AESDECRYPTFILE",
+        "AESENCRYPTFILE",
+        "SCROLLDOWN",
+        "SCROLLINIT",
+        "SCROLLTEXT",
+        "SCROLLUP",
+        "PRINTIMAGE",
+        "ECHORECORD",
+        "AESDECRYPT",
+        "AESENCRYPT",
+        "BLOBGETLEN",
+        "CHECKQUEUE",
+        "PARAMETER2",
+        "REPORTINFO",
+        "RECTRAVERSE",
+        "SORTSEARCH",
+        "SQLPASSTHRU",
+        "TDBEXECUTE",
+        "WTMODCHECK",
+        "PRINTTEXT",
+        "PRINTFILE",
+        "PROXYUSER",
+        "REPORTROW",
+        "PARAMETER",
+        "CHECKFUN",
+        "CHECKPRG",
+        "ECHOJSON",
+        "FINDFILE",
+        "MODCHECK",
+        "NORDBBIND",
+        "TRIMBIND",
+        "VALIDATE",
+        "ECHOXML",
+        "ASSIGN2",
+        "ASSIGN3",
+        "BLOBGET",
+        "CALCPOS",
+        "CALLPRG",
+        "COMPILE",
+        "LOGICAL",
+        "NULLIND",
+        "NULLVAL",
+        "RDBBIND",
+        "REFLECT",
+        "LISTAGG",
+        "ASSIGN",
+        "CENTER",
+        "ACCEPT",
+        "PARSER",
+        "CALLR",
+        "CLEAR",
+        "DEBUG",
+        "ERROR",
+        "PAUSE",
+        "PRINT",
+        "SOUND",
+        "TRACE",
+        "VALUE",
+        "VIDEO",
+        "ASIS",
+        "ECHO",
+        "EDIT",
+        "LINE",
+        "SORT",
+        "BOX",
+        "COL",
+        "DCL",
+        "ROW",
+    ]
+
+    grammar = {
+        "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+        "name": "Cerner CCL",
+        "scopeName": "source.ccl",
+        "patterns": [
+            {"include": "#comments"},
+            {"include": "#strings"},
+            {"include": "#directives"},
+            {"include": "#member-access"},
+            {"include": "#declarations"},
+            {"include": "#keywords"},
+            {"include": "#constants"},
+            {"include": "#types"},
+            {"include": "#functions"},
+            {"include": "#operators"},
+            {"include": "#numbers"},
+            {"include": "#variables"},
+        ],
+        "repository": {
+            "comments": {
+                "patterns": [
+                    {
+                        "name": "comment.line.semicolon.ccl",
+                        "match": ";.*$",
+                    },
+                    {
+                        "name": "comment.line.exclamation.ccl",
+                        "match": "!(?!=).*$",
+                    },
+                    {
+                        "name": "comment.block.ccl",
+                        "begin": "/\\*",
+                        "beginCaptures": {
+                            "0": {"name": "punctuation.definition.comment.ccl"}
+                        },
+                        "end": "\\*/",
+                        "endCaptures": {
+                            "0": {"name": "punctuation.definition.comment.ccl"}
+                        },
+                    },
+                ]
+            },
+            # NOTE: In Cerner CCL, backslash (\) is a literal character inside strings,
+            # NOT an escape character. Do not add \\. escape rules here.
+            "strings": {
+                "patterns": [
+                    {
+                        "name": "string.quoted.double.ccl",
+                        "begin": "\"",
+                        "beginCaptures": {
+                            "0": {"name": "punctuation.definition.string.begin.ccl"}
+                        },
+                        "end": "\"",
+                        "endCaptures": {
+                            "0": {"name": "punctuation.definition.string.end.ccl"}
+                        },
+                    },
+                    {
+                        "name": "string.quoted.single.ccl",
+                        "begin": "'",
+                        "beginCaptures": {
+                            "0": {"name": "punctuation.definition.string.begin.ccl"}
+                        },
+                        "end": "'",
+                        "endCaptures": {
+                            "0": {"name": "punctuation.definition.string.end.ccl"}
+                        },
+                    },
+                    {
+                        "name": "string.quoted.other.caret.ccl",
+                        "begin": "\\^",
+                        "beginCaptures": {
+                            "0": {"name": "punctuation.definition.string.begin.ccl"}
+                        },
+                        "end": "\\^",
+                        "endCaptures": {
+                            "0": {"name": "punctuation.definition.string.end.ccl"}
+                        },
+                    },
+                    {
+                        "name": "string.quoted.other.tilde.ccl",
+                        "begin": "~",
+                        "beginCaptures": {
+                            "0": {"name": "punctuation.definition.string.begin.ccl"}
+                        },
+                        "end": "~",
+                        "endCaptures": {
+                            "0": {"name": "punctuation.definition.string.end.ccl"}
+                        },
+                    },
+                ]
+            },
+            "directives": {
+                "patterns": [
+                    {
+                        "match": "(?i)^\\s*(%[a-z]+)\\b",
+                        "captures": {
+                            "1": {"name": "keyword.control.directive.ccl"}
+                        },
+                    }
+                ]
+            },
+            "member-access": {
+                "patterns": [
+                    {
+                        "match": "(->)\\s*([A-Za-z_][A-Za-z0-9_]*)",
+                        "captures": {
+                            "1": {"name": "punctuation.accessor.ccl"},
+                            "2": {"name": "variable.other.property.ccl"},
+                        },
+                    },
+                    {
+                        "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)",
+                        "captures": {
+                            "1": {"name": "punctuation.accessor.ccl"},
+                            "2": {"name": "variable.other.property.ccl"},
+                        },
+                    },
+                ]
+            },
+            "declarations": {
+                "patterns": [
+                    {
+                        "match": "(?i)\\b(subroutine)\\s+(?:\\(\\s*)?([a-z_][a-z0-9_]*)\\s*(?=\\()",
+                        "captures": {
+                            "1": {"name": "keyword.control.ccl"},
+                            "2": {"name": "entity.name.function.ccl"},
+                        },
+                    },
+                    {
+                        "match": "(?i)\\b(drop\\s+program|create\\s+program)\\s+([a-z_][a-z0-9_]*(?::[a-z_][a-z0-9_]*)?)",
+                        "captures": {
+                            "1": {"name": "keyword.control.ccl"},
+                            "2": {"name": "entity.name.type.ccl"},
+                        },
+                    },
+                ]
+            },
+            "keywords": {
+                "patterns": [
+                    {
+                        "name": "keyword.control.ccl",
+                        "match": f"(?i)\\b({build_word_alternation(control_keywords)})\\b",
+                    },
+                    {
+                        "name": "keyword.control.ccl",
+                        "match": "(?i)\\bFORMAT\\b(?!\\s*\\()",
+                    },
+                    {
+                        "name": "keyword.operator.logical.ccl",
+                        "match": f"(?i)\\b({build_word_alternation(logical_operators)})\\b",
+                    },
+                ]
+            },
+            "constants": {
+                "patterns": [
+                    {
+                        "name": "constant.language.ccl",
+                        "match": f"(?i)\\b({build_word_alternation(language_constants)})\\b",
+                    }
+                ]
+            },
+            "types": {
+                "patterns": [
+                    {
+                        "match": "(?i)(=)\\s*(c[1-9]\\d*)\\b(?!\\s*(?:\\.|->|\\(|\\[))",
+                        "captures": {
+                            "1": {"name": "keyword.operator.ccl"},
+                            "2": {"name": "storage.type.ccl"},
+                        },
+                    },
+                    {
+                        "name": "storage.type.ccl",
+                        "match": "(?i)\\b(f4|f8|i1|i2|i4|w8|dq8|vc|gvc)\\b(?!\\s*(?:\\.|->|\\())",
+                    },
+                ]
+            },
+            "functions": {
+                "patterns": [
+                    {
+                        "name": "support.function.ccl",
+                        "match": "(?i)\\buar_[a-z0-9_]+\\b(?=\\s*\\()",
+                    },
+                    {
+                        "name": "support.function.ccl",
+                        "match": f"(?i)\\b({build_word_alternation(builtin_functions)})\\b(?=\\s*\\()",
+                    },
+                    {
+                        "match": "(?i)\\b([a-z_][a-z0-9_]*)(?=\\s*\\()",
+                        "captures": {
+                            "1": {"name": "entity.name.function.ccl"}
+                        },
+                    },
+                ]
+            },
+            "operators": {
+                "patterns": [
+                    {
+                        "name": "keyword.operator.ccl",
+                        "match": "(->|!=|<>|<=|>=|\\*\\*|[=<>+\\-*/])",
+                    }
+                ]
+            },
+            "numbers": {
+                "patterns": [
+                    {
+                        "name": "constant.numeric.ccl",
+                        "match": "\\b\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b|(?<!\\w)\\.\\d+(?:[eE][+-]?\\d+)?\\b",
+                    }
+                ]
+            },
+            "variables": {
+                "patterns": [
+                    {
+                        "name": "variable.other.ccl",
+                        "match": "(?i)\\b[a-z_][a-z0-9_]*\\b",
+                    }
+                ]
+            },
         },
-        {
-            "include": "#strings"
-        },
-        {
-            "include": "#keywords"
-        },
-        {
-            "include": "#variables"
-        },
-        {
-            "include": "#numbers"
-        }
-    ],
-    "repository": {
-        "comments": {
-            "patterns": [
-                {
-                    "name": "comment.line.ccl",
-                    "match": ";.*$"
-                },
-                {
-                    "name": "comment.block.ccl",
-                    "begin": "/\\*",
-                    "end": "\\*/"
-                }
-            ]
-        },
-        "strings": {
-            "patterns": [
-                {
-                    "name": "string.quoted.double.ccl",
-                    "begin": "\"",
-                    "end": "\"",
-                    "patterns": [
-                        {
-                            "name": "constant.character.escape.ccl",
-                            "match": "\\\\."
-                        }
-                    ]
-                },
-                {
-                    "name": "string.quoted.single.ccl",
-                    "begin": "'",
-                    "end": "'",
-                    "patterns": [
-                        {
-                            "name": "constant.character.escape.ccl",
-                            "match": "\\\\."
-                        }
-                    ]
-                }
-            ]
-        },
-        "keywords": {
-            "patterns": [
-                {
-                    "name": "keyword.control.ccl",
-                    "match": keywords_regex
-                }
-            ]
-        },
-        "variables": {
-            "patterns": [
-                {
-                    "name": "variable.other.ccl",
-                    "match": "(?i)\\b[a-z_][a-z0-9_]*\\b"
-                }
-            ]
-        },
-        "numbers": {
-            "patterns": [
-                {
-                    "name": "constant.numeric.ccl",
-                    "match": "\\b\\d+(\\.\\d+)?\\b"
-                }
-            ]
-        }
-    },
-    "scopeName": "source.ccl"
-}
+    }
 
-with open("syntaxes/ccl.tmLanguage.json", "w") as f:
-    json.dump(grammar, f, indent=4)
+    validate_regexes(grammar)
+    return grammar
 
-print("Generated syntaxes/ccl.tmLanguage.json")
+
+def main() -> None:
+    grammar = build_grammar()
+    out_path = Path(__file__).resolve().parent / "syntaxes" / "ccl.tmLanguage.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", encoding="utf-8", newline="\n") as f:
+        json.dump(grammar, f, indent=4)
+        f.write("\n")
+    print(f"Generated {out_path}")
+
+
+if __name__ == "__main__":
+    main()

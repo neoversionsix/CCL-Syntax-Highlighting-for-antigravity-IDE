@@ -7,7 +7,8 @@
             "from",
             "\t${3:table_name}",
             "where ${4:condition}",
-            "with format, separator=\" \", time=${5:60}"
+            "with format, separator=\" \", time=${5:60}",
+            "go"
         ],
         "description": "A basic SELECT statement"
     },
@@ -18,7 +19,8 @@
             "set",
             "\t${2:column_name} = ${3:value}",
             "where ${4:condition}",
-            "with time=${5:60}"
+            "with time=${5:60}",
+            "go"
         ],
         "description": "A basic UPDATE statement"
     },
@@ -27,14 +29,15 @@
         "body": [
             "delete from ${1:table_name}",
             "where ${2:condition}",
-            "with time=${3:60}"
+            "with time=${3:60}",
+            "go"
         ],
         "description": "A basic DELETE statement"
     },
     "DECLARE variable": {
         "prefix": "declare",
         "body": [
-            "declare ${1:var_name} = ${2|f8,i4,i2,vc,c|} with noconstant(${3:0.0})"
+            "declare ${1:var_name} = ${2|f8,i4,i2,i1,dq8,vc,c1|} with protect, noconstant(${3:0.0})"
         ],
         "description": "Declare a variable"
     },
@@ -47,6 +50,26 @@
         ],
         "description": "If statement"
     },
+    "IF-ELSE statement": {
+        "prefix": "ifelse",
+        "body": [
+            "if (${1:condition})",
+            "\t${2:; if branch}",
+            "else",
+            "\t${3:; else branch}",
+            "endif"
+        ],
+        "description": "If-Else statement"
+    },
+    "FOR loop": {
+        "prefix": "for",
+        "body": [
+            "for (${1:idx} = ${2:1} to ${3:count})",
+            "\t${4:; code}",
+            "endfor"
+        ],
+        "description": "For loop"
+    },
     "WHILE loop": {
         "prefix": "while",
         "body": [
@@ -55,5 +78,39 @@
             "endwhile"
         ],
         "description": "While loop"
+    },
+    "SUBROUTINE block": {
+        "prefix": "subroutine",
+        "body": [
+            "subroutine ${1:sub_name}(${2:param})",
+            "\t${3:; code}",
+            "\treturn(${4:0})",
+            "end"
+        ],
+        "description": "Define a CCL subroutine"
+    },
+    "RECORD structure": {
+        "prefix": "record",
+        "body": [
+            "free record ${1:rec_name}",
+            "record ${1:rec_name} (",
+            "\t1 ${2:field_name} = ${3|vc,i4,f8,dq8,c1|}",
+            "\t1 list[*]",
+            "\t\t2 ${4:item_name} = ${5|vc,i4,f8,dq8,c1|}",
+            ") with protect"
+        ],
+        "description": "Define a CCL record structure"
+    },
+    "PROGRAM skeleton": {
+        "prefix": "program",
+        "body": [
+            "drop program ${1:prog_name}:dba go",
+            "create program ${1:prog_name}:dba",
+            "",
+            "${2:; code}",
+            "",
+            "end go"
+        ],
+        "description": "Standard Cerner CCL program wrapper"
     }
 }

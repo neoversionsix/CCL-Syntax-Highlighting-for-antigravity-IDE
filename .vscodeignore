@@ -1,0 +1,4 @@
+generate_grammar.py
+sample.prg
+*.vsix
+.git*
