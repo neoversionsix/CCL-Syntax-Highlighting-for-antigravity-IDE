@@ -6,7 +6,8 @@ Provides syntax highlighting, language configuration, and code snippets for Cern
 
 - **Comments**: `;` and `!` single-line comments (without interfering with `!=`), and `/* ... */` block comments.
 - **Strings**: `"..."`, `'...'`, `^...^`, and `~...~` string literals (treating `\` as a literal character rather than an escape sequence, matching CCL compiler behavior).
-- **Keywords, Types & Built-ins**: CCL control flow (`IF`/`ENDIF`, `FOR`/`ENDFOR`, `WHILE`/`ENDWHILE`, `SELECT`/`PLAN`/`JOIN`/`WITH`, `RECORD`, `SUBROUTINE`, `DROP/CREATE PROGRAM`), data types (`f4`, `f8`, `i1`, `i2`, `i4`, `w8`, `dq8`, `vc`, `gvc`, `cN`), built-in functions, `uar_*` calls, member access (`->` / `.`), and `%` directives.
+- **Keywords, Types & Built-ins**: CCL control flow (`IF`/`ENDIF`, `FOR`/`ENDFOR`, `WHILE`/`ENDWHILE`, `SELECT`/`PLAN`/`JOIN`/`WITH`, `RECORD`, `SUBROUTINE`, `DROP/CREATE PROGRAM`), data types (`f4`, `f8`, `i1`, `i2`, `i4`, `ui1`–`ui4`, `w8`, `uw8`, `dq8`, `dm12`, `dm14`, `vc`, `gvc`, `zvc`, `zgvc`, `cN`), built-in functions, `uar_*` calls, member access (`->` / `.`), and `%` / `%#` directives.
+- **Hover Documentation & Parameter Hints**: Hover over built-in CCL functions, `CALL` / `SET` commands, keywords, data types, and `%` directives to view syntax, parameter descriptions, option tables, and examples; live parameter signature help triggers on `(` and `,`.
 - **Language Configuration & Snippets**: Auto-closing pairs, indentation rules, and snippets for `select`, `update`, `delete`, `declare`, `if`, `ifelse`, `for`, `while`, `subroutine`, `record`, and `program`.
 
 ## Development & Packaging

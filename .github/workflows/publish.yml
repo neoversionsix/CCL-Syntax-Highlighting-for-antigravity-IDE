@@ -21,9 +21,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Validate JSON files
+      - name: Validate JSON and extension script
         run: |
-          node -e 'for (const p of ["package.json", "language-configuration.json", "syntaxes/ccl.tmLanguage.json", "snippets/ccl.code-snippets"]) JSON.parse(require("fs").readFileSync(p, "utf8"));'
+          node -e 'for (const p of ["package.json", "language-configuration.json", "syntaxes/ccl.tmLanguage.json", "snippets/ccl.code-snippets", "data/ccl-docs.json"]) JSON.parse(require("fs").readFileSync(p, "utf8"));'
+          node --check extension.js
 
       - name: Verify tag matches package.json version
         if: startsWith(github.ref, 'refs/tags/v')

@@ -1,4 +1,5 @@
 generate_grammar.py
+build_docs.py
 sample.prg
 *.vsix
 .git*
